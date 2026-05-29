@@ -11,9 +11,6 @@ import joblib
 BASE_DIR = Path(__file__).resolve().parent
 
 
-# -----------------------------
-# 파일 로드 함수
-# -----------------------------
 def load_artifact(filename):
 
     artifact_path = BASE_DIR / filename
@@ -21,17 +18,15 @@ def load_artifact(filename):
     if not artifact_path.exists():
 
         st.error(f"""
-        ❌ 파일을 찾을 수 없습니다.
+❌ 파일을 찾을 수 없습니다.
 
-        파일명:
-        {filename}
+파일명: {filename}
 
-        예상 위치:
-        {artifact_path}
+예상 위치:
+{artifact_path}
 
-        프로젝트 폴더에 파일을 넣어주세요.
-        """)
-
+👉 프로젝트 폴더에 파일을 넣어주세요.
+""")
         st.stop()
 
     return joblib.load(artifact_path)
@@ -46,8 +41,9 @@ st.set_page_config(
     layout="wide"
 )
 
+
 # -----------------------------
-# CSS 디자인
+# CSS
 # -----------------------------
 st.markdown("""
 <style>
@@ -111,290 +107,108 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 # -----------------------------
-# 모델 파일 로드
+# 모델 로드 (여기만 변경됨)
 # -----------------------------
-knn_model_eng = load_artifact("knn_model_eng.pkl")
+model = load_artifact("rf_model.joblib")
 scaler = load_artifact("scaler.pkl")
 X_columns = load_artifact("X_columns.pkl")
 X_mean = load_artifact("X_mean.pkl")
 
+
 # -----------------------------
 # 제목
 # -----------------------------
-st.markdown(
-    '<div class="title">🩺 AI 당뇨 예측 시스템</div>',
-    unsafe_allow_html=True
-)
+st.markdown('<div class="title">🩺 AI 당뇨 예측 시스템</div>', unsafe_allow_html=True)
 
-st.markdown(
-    '<div class="subtitle">건강 데이터를 기반으로 당뇨 위험도를 예측합니다.</div>',
-    unsafe_allow_html=True
-)
+st.markdown('<div class="subtitle">건강 데이터를 기반으로 당뇨 위험도를 예측합니다.</div>', unsafe_allow_html=True)
+
 
 # -----------------------------
-# 입력 카드
+# 입력
 # -----------------------------
 st.markdown('<div class="card">', unsafe_allow_html=True)
 
-st.subheader("📋 건강 정보 입력")
-
 col1, col2, col3 = st.columns(3)
 
-# -----------------------------
-# 입력값
-# -----------------------------
 with col1:
-
-    total_chol = st.number_input(
-        "총콜레스테롤",
-        value=200.0
-    )
-
-    stab_glu = st.number_input(
-        "공복혈당",
-        value=90.0
-    )
-
-    hdl = st.number_input(
-        "HDL콜레스테롤",
-        value=40.0
-    )
-
-    ratio = st.number_input(
-        "콜레스테롤비율",
-        value=5.0
-    )
-
-    glyhb = st.number_input(
-        "당화혈색소",
-        value=5.5
-    )
+    total_chol = st.number_input("총콜레스테롤", 200.0)
+    stab_glu = st.number_input("공복혈당", 90.0)
+    hdl = st.number_input("HDL콜레스테롤", 40.0)
+    ratio = st.number_input("콜레스테롤비율", 5.0)
+    glyhb = st.number_input("당화혈색소", 5.5)
 
 with col2:
-
-    age = st.number_input(
-        "나이",
-        value=45
-    )
-
-    gender = st.selectbox(
-        "성별",
-        ["female", "male"]
-    )
-
-    height = st.number_input(
-        "키(cm)",
-        value=165.0
-    )
-
-    weight = st.number_input(
-        "몸무게(kg)",
-        value=70.0
-    )
-
-    waist = st.number_input(
-        "허리둘레",
-        value=35.0
-    )
+    age = st.number_input("나이", 45)
+    gender = st.selectbox("성별", ["female", "male"])
+    height = st.number_input("키(cm)", 165.0)
+    weight = st.number_input("몸무게(kg)", 70.0)
+    waist = st.number_input("허리둘레", 35.0)
 
 with col3:
-
-    hip = st.number_input(
-        "엉덩이둘레",
-        value=40.0
-    )
-
-    bp_1s = st.number_input(
-        "1차 수축기혈압",
-        value=130.0
-    )
-
-    bp_1d = st.number_input(
-        "1차 이완기혈압",
-        value=80.0
-    )
-
-    bp_2s = st.number_input(
-        "2차 수축기혈압",
-        value=140.0
-    )
-
-    bp_2d = st.number_input(
-        "2차 이완기혈압",
-        value=90.0
-    )
-
-    time_ppn = st.number_input(
-        "식후경과시간(분)",
-        value=180.0
-    )
+    hip = st.number_input("엉덩이둘레", 40.0)
+    bp_1s = st.number_input("1차 수축기혈압", 130.0)
+    bp_1d = st.number_input("1차 이완기혈압", 80.0)
+    bp_2s = st.number_input("2차 수축기혈압", 140.0)
+    bp_2d = st.number_input("2차 이완기혈압", 90.0)
+    time_ppn = st.number_input("식후경과시간(분)", 180.0)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
+
 # -----------------------------
-# 예측 버튼
+# 예측
 # -----------------------------
 if st.button("🧠 당뇨 예측하기"):
 
-    # -----------------------------
-    # 입력 데이터 생성
-    # -----------------------------
-    input_data_raw = pd.DataFrame(
-        [[
-            total_chol,
-            stab_glu,
-            hdl,
-            ratio,
-            glyhb,
-            age,
-            gender,
-            height,
-            weight,
-            bp_1s,
-            bp_1d,
-            bp_2s,
-            bp_2d,
-            waist,
-            hip,
-            time_ppn
-        ]],
-        columns=[
-            '총콜레스테롤',
-            '공복혈당',
-            'HDL콜레스테롤',
-            '콜레스테롤비율',
-            '당화혈색소',
-            '나이',
-            '성별',
-            '키',
-            '몸무게',
-            '1차_수축기혈압',
-            '1차_이완기혈압',
-            '2차_수축기혈압',
-            '2차_이완기혈압',
-            '허리둘레',
-            '엉덩이둘레',
-            '식후경과시간'
-        ]
-    )
+    input_data = pd.DataFrame([[
+        total_chol, stab_glu, hdl, ratio, glyhb,
+        age, gender, height, weight,
+        bp_1s, bp_1d, bp_2s, bp_2d,
+        waist, hip, time_ppn
+    ]], columns=[
+        '총콜레스테롤','공복혈당','HDL콜레스테롤','콜레스테롤비율','당화혈색소',
+        '나이','성별','키','몸무게',
+        '1차_수축기혈압','1차_이완기혈압','2차_수축기혈압','2차_이완기혈압',
+        '허리둘레','엉덩이둘레','식후경과시간'
+    ])
 
-    # -----------------------------
     # Feature Engineering
-    # -----------------------------
-    input_data_raw['복부비만도'] = (
-        input_data_raw['허리둘레'] /
-        input_data_raw['엉덩이둘레']
+    input_data["복부비만도"] = input_data["허리둘레"] / input_data["엉덩이둘레"]
+    input_data["BMI"] = input_data["몸무게"] / ((input_data["키"]/100)**2)
+    input_data["나쁜콜레스테롤_비율"] = (
+        (input_data["총콜레스테롤"] - input_data["HDL콜레스테롤"]) /
+        input_data["HDL콜레스테롤"]
     )
 
-    input_data_raw['BMI'] = (
-        input_data_raw['몸무게'] /
-        ((input_data_raw['키'] / 100) ** 2)
-    )
+    # One-hot
+    input_encoded = pd.get_dummies(input_data, columns=["성별"], drop_first=True, dtype=float)
 
-    input_data_raw['나쁜콜레스테롤_비율'] = (
-        (
-            input_data_raw['총콜레스테롤'] -
-            input_data_raw['HDL콜레스테롤']
-        ) /
-        input_data_raw['HDL콜레스테롤']
-    )
-
-    # -----------------------------
-    # 결측치 처리
-    # -----------------------------
-    for col in input_data_raw.columns:
-
-        if pd.api.types.is_numeric_dtype(input_data_raw[col]):
-
-            if input_data_raw[col].isnull().any():
-
-                input_data_raw[col] = input_data_raw[col].fillna(
-                    X_mean.get(col, 0)
-                )
-
-    # -----------------------------
-    # One-Hot Encoding
-    # -----------------------------
-    input_data_encoded = pd.get_dummies(
-        input_data_raw,
-        columns=['성별'],
-        drop_first=True,
-        dtype=float
-    )
-
-    # -----------------------------
     # 컬럼 맞추기
-    # -----------------------------
-    final_input_data = pd.DataFrame(
-        columns=X_columns,
-        index=[0]
-    ).fillna(0.0)
+    final_input = pd.DataFrame(columns=X_columns, index=[0]).fillna(0)
 
-    for col in input_data_encoded.columns:
+    for c in input_encoded.columns:
+        if c in final_input.columns:
+            final_input[c] = input_encoded[c]
 
-        if col in final_input_data.columns:
+    final_input = final_input.astype(float)
 
-            final_input_data[col] = input_data_encoded[col]
+    # scaling
+    scaled = scaler.transform(final_input)
 
-    # -----------------------------
-    # 숫자형 변환
-    # -----------------------------
-    final_input_data = final_input_data.apply(
-        pd.to_numeric,
-        errors='coerce'
-    )
+    # predict
+    pred = model.predict(scaled)
+    prob = model.predict_proba(scaled)[0][1] * 100
 
-    final_input_data = final_input_data.fillna(0.0)
-
-    final_input_data = final_input_data.astype(float)
-
-    # -----------------------------
-    # 스케일링
-    # -----------------------------
-    input_scaled = scaler.transform(final_input_data)
-
-    # -----------------------------
-    # 예측
-    # -----------------------------
-    predicted = knn_model_eng.predict(input_scaled)
-
-    prob = knn_model_eng.predict_proba(input_scaled)
-
-    diabetes_prob = prob[0][1] * 100
-
-    # -----------------------------
-    # 결과 출력
-    # -----------------------------
     st.markdown(f"""
     <div class="result-box">
-
-        <div style="font-size:24px;">
-            당뇨 예측 결과
-        </div>
-
+        <div style="font-size:22px;">결과</div>
         <div class="result-text">
-            {"⚠ 당뇨 위험" if predicted[0] == 1 else "✅ 정상"}
+            {"⚠ 당뇨 위험" if pred[0]==1 else "✅ 정상"}
         </div>
-
-        <div style="font-size:28px; margin-top:15px;">
-            위험 확률 : {diabetes_prob:.1f}%
+        <div style="font-size:26px;">
+            확률: {prob:.1f}%
         </div>
-
     </div>
     """, unsafe_allow_html=True)
-
-    # -----------------------------
-    # 위험도 메시지
-    # -----------------------------
-    if diabetes_prob >= 70:
-
-        st.error("⚠ 높은 당뇨 위험군입니다.")
-
-    elif diabetes_prob >= 40:
-
-        st.warning("⚠ 주의가 필요한 상태입니다.")
-
-    else:
-
-        st.success("✅ 비교적 정상 범위입니다.")
